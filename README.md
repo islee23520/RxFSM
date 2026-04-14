@@ -1,5 +1,7 @@
 # RxFSM: A state machine for Unity where triggers carry data — and everything reacts to it.
 
+**[AI Code Generation Guide](AI_GUIDE.md)** — precise API reference for Claude, Gemini, ChatGPT, and other AI assistants.
+
 ---
 
 ## What this makes possible
