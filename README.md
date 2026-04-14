@@ -21,7 +21,7 @@ public readonly struct Damaged{
 		this.amount = amount; 
 		this.element = element; 
 		this.direction = direction; }
-}akwdk
+}
 
 // C# 10+
 public readonly record struct Damaged(float amount, Element element, Vector3 direction);
@@ -184,16 +184,18 @@ var handle2 = sm.EnterState<SkillCast>(State.SkillCast, (prev, trg) =>
 **Monster AI with Day/Night Behavior** — Swapping Ticks Without Complex Branching
 
 ```csharp
-var handle = sm.TickState<PatrolCommand, Monster.Patrol>((prev, trg) =>
+var handle = sm.TickState(Monster.Patrol, (prev, trg) =>
     {
-        DayPatrolLogic(trg.LastPlayerPosition);
+        var cmd = (PatrolCommand)trg;
+        DayPatrolLogic(cmd.LastPlayerPosition);
     });
 
 handle.Dispose(); // Logic execution rights revoked immediately
 
-handle = sm.TickState<PatrolCommand, Monster.Patrol>((prev, trg) =>
+handle = sm.TickState(Monster.Patrol, (prev, trg) =>
     {
-        NightPatrolLogic(trg.LastPlayerPosition);
+        var cmd = (PatrolCommand)trg;
+        NightPatrolLogic(cmd.LastPlayerPosition);
     });
 ```
 
@@ -626,8 +628,8 @@ sm.EnterState(GameState.Playing, (prev, trg) =>
 	if (trg is Resume)
 		Time.timeScale = 1f
 });
-sm.EnterState<GameState.Paused>((prev, trg) => Time.timeScale = 0f);
-sm.EnterState<GameState.GameOver>((prev, trg) => ShowGameOverUI());
+sm.EnterState(GameState.Paused,   (prev, trg) => Time.timeScale = 0f);
+sm.EnterState(GameState.GameOver, (prev, trg) => ShowGameOverUI());
 ```
 
 ### Turn-Based Battle

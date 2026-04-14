@@ -182,16 +182,18 @@ var handle2 = sm.EnterState<SkillCast>(State.SkillCast, (prev, trg) =>
 **昼夜行動パターンを持つモンスターAI** — 複雑な分岐なしにティックを交換
 
 ```csharp
-var handle = sm.TickState<PatrolCommand, Monster.Patrol>((prev, trg) =>
+var handle = sm.TickState(Monster.Patrol, (prev, trg) =>
     {
-        DayPatrolLogic(trg.LastPlayerPosition);
+        var cmd = (PatrolCommand)trg;
+        DayPatrolLogic(cmd.LastPlayerPosition);
     });
 
 handle.Dispose(); // ロジック実行権限を即座に回収
 
-handle = sm.TickState<PatrolCommand, Monster.Patrol>((prev, trg) =>
+handle = sm.TickState(Monster.Patrol, (prev, trg) =>
     {
-        NightPatrolLogic(trg.LastPlayerPosition);
+        var cmd = (PatrolCommand)trg;
+        NightPatrolLogic(cmd.LastPlayerPosition);
     });
 ```
 

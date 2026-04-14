@@ -182,16 +182,18 @@ var handle2 = sm.EnterState<SkillCast>(State.SkillCast, (prev, trg) =>
 **낮/밤 행동 패턴을 가진 몬스터 AI** — 복잡한 분기 없이 틱 교체
 
 ```csharp
-var handle = sm.TickState<PatrolCommand, Monster.Patrol>((prev, trg) =>
+var handle = sm.TickState(Monster.Patrol, (prev, trg) =>
     {
-        DayPatrolLogic(trg.LastPlayerPosition);
+        var cmd = (PatrolCommand)trg;
+        DayPatrolLogic(cmd.LastPlayerPosition);
     });
 
 handle.Dispose(); // 즉시 로직 실행 권한 회수
 
-handle = sm.TickState<PatrolCommand, Monster.Patrol>((prev, trg) =>
+handle = sm.TickState(Monster.Patrol, (prev, trg) =>
     {
-        NightPatrolLogic(trg.LastPlayerPosition);
+        var cmd = (PatrolCommand)trg;
+        NightPatrolLogic(cmd.LastPlayerPosition);
     });
 ```
 
