@@ -2,7 +2,7 @@
 
 [English](README.md) | [한국어](README.ko.md) | [MIT License](LICENSE)
 
-**[APIリファレンス & 詳細ガイド](AI_GUIDE.md)** — 正確な動作順序・使用パターン・サンプルコードを網羅した詳細マニュアルです。自分で参照するのはもちろん、Claude・Gemini・ChatGPTに貼り付ければ、AIが正確なコードを生成できます.
+**[APIリファレンス & 詳細ガイド](API_REFERENCE.md)** — 正確な動作順序・使用パターン・サンプルコードを網羅した詳細マニュアルです。自分で参照するのはもちろん、Claude・Gemini・ChatGPTに貼り付ければ、AIが正確なコードを生成できます.
 
 ---
 

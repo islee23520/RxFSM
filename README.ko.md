@@ -2,7 +2,7 @@
 
 [English](README.md) | [日本語](README.ja.md) | [MIT License](LICENSE)
 
-**[API 레퍼런스 & 상세 가이드](AI_GUIDE.md)** — 정확한 동작 순서, 사용 패턴, 예문을 담은 상세 매뉴얼입니다. 직접 참고하거나, Claude·Gemini·ChatGPT에 붙여넣으면 AI가 정확한 코드를 생성할 수 있습니다.
+**[API 레퍼런스 & 상세 가이드](API_REFERENCE.md)** — 정확한 동작 순서, 사용 패턴, 예문을 담은 상세 매뉴얼입니다. 직접 참고하거나, Claude·Gemini·ChatGPT에 붙여넣으면 AI가 정확한 코드를 생성할 수 있습니다.
 
 ---
 
