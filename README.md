@@ -60,6 +60,20 @@ var sm = RxFSM.Create<CharState>(CharState.Idle)
 
 ---
 
+**Install the core package** via Package Manager → **+** → **Add package from git URL**:
+
+```
+https://github.com/YoruYomix/RxFSM.git?path=com.yoruyomix.rxfsm
+```
+
+Or directly in `Packages/manifest.json`:
+
+```json
+"com.yoruyomix.rxfsm": "https://github.com/YoruYomix/RxFSM.git?path=com.yoruyomix.rxfsm"
+```
+
+---
+
 **Attack cooldown**  — in one line.
 
 ```csharp
@@ -507,48 +521,6 @@ provide a separate `API guide for AI`. Copy and paste it to your Claude, Gemini,
 
 ---
 
-## Installation
-
-### Core package
-
-Open **Window → Package Manager**, click **+** → **Add package from git URL**, and enter:
-
-```
-https://github.com/YoruYomix/RxFSM.git?path=com.yoruyomix.rxfsm
-```
-
-Or add directly to `Packages/manifest.json`:
-
-```json
-"com.yoruyomix.rxfsm": "https://github.com/YoruYomix/RxFSM.git?path=com.yoruyomix.rxfsm"
-```
-
----
-
-### UniTask extension
-
-Requires [UniTask](https://github.com/Cysharp/UniTask) to be installed first.
-
-```
-https://github.com/YoruYomix/RxFSM.git?path=com.yoruyomix.rxfsm.unitask
-```
-
-Adds `ToUniTask(state, ct)` for awaiting state transitions.
-
----
-
-### R3 extension
-
-Requires [R3](https://github.com/Cysharp/R3) to be installed first.
-
-```
-https://github.com/YoruYomix/RxFSM.git?path=com.yoruyomix.rxfsm.r3
-```
-
-Adds `Connect(IObservable<T>)` for bridging R3 / UniRx streams into the FSM.
-
----
-
 ## Quick Start
 
 ### Define triggers
@@ -709,7 +681,47 @@ battleFsm.EnterStateAsync<AllEnemyDead>(BattleState.Victory, async (prev, trg, c
 }, AsyncOperation.Switch);
 ```
 
+---
 
+**UniTask extension** — await state transitions in async flows.
+
+Requires [UniTask](https://github.com/Cysharp/UniTask). Add via Package Manager → **+** → **Add package from git URL**:
+
+```
+https://github.com/YoruYomix/RxFSM.git?path=com.yoruyomix.rxfsm.unitask
+```
+
+```csharp
+async UniTask Tutorial(CancellationToken ct)
+{
+    ShowGuide("Try attacking!");
+    await playerFSM.ToUniTask(CharState.Attack, ct);
+
+    ShowGuide("Now try dodging!");
+    await playerFSM.ToUniTask(CharState.Dodge, ct);
+}
+```
+
+`ToUniTask(state, ct)` completes the moment the FSM enters the target state. Pair it with `AsyncOperation.Switch` handlers to build step-by-step tutorial or cutscene flows without polling.
+
+---
+
+**R3 extension** — bridge R3 / UniRx streams directly into the FSM.
+
+Requires [R3](https://github.com/Cysharp/R3). Add via Package Manager → **+** → **Add package from git URL**:
+
+```
+https://github.com/YoruYomix/RxFSM.git?path=com.yoruyomix.rxfsm.r3
+```
+
+```csharp
+// Connect any IObservable<T> — no wrapper needed
+sm.Connect(input.attackStream);      // IObservable<AttackInput>
+sm.Connect(damageSystem.hitStream);  // IObservable<Damaged>
+sm.Connect(network.commandStream);   // IObservable<NetworkCommand>
+```
+
+`Connect(IObservable<T>)` subscribes the stream and calls `Trigger` on each emission. Returns `IDisposable` — dispose to unsubscribe.
 
 ---
 
