@@ -52,6 +52,37 @@ namespace RxFSM
             });
         }
 
+        // ── Unfiltered — (cur, prev, trg, ct) ───────────────────────────────────
+
+        public IDisposable EnterStateAsync(
+            Func<TState, TState, object, CancellationToken, Task> callback,
+            AsyncOperation policy)
+        {
+            var sub = new AsyncSub { Policy = policy, HasTargetState = false };
+            (_asyncSubs ??= new List<AsyncSub>()).Add(sub);
+
+            var enterHandle = EnterState((Action<TState, TState, object>)((cur, prev, trg) =>
+            {
+                var capturedCur  = cur;
+                var capturedPrev = prev;
+                var capturedTrg  = trg;
+                HandleAsyncEntry(sub, capturedCur,
+                    ct => callback(capturedCur, capturedPrev, capturedTrg, ct));
+            }));
+
+            IDisposable exitHandle = policy == AsyncOperation.Switch
+                ? ExitState((cur, next) => sub.Cts?.Cancel())
+                : Disposable.Empty;
+
+            return Disposable.Create(() =>
+            {
+                _asyncSubs?.Remove(sub);
+                CancelSubAndRelease(sub);
+                enterHandle.Dispose();
+                exitHandle.Dispose();
+            });
+        }
+
         // ── State-filtered — (prev, ct) ──────────────────────────────────────────
 
         public IDisposable EnterStateAsync(
@@ -67,6 +98,38 @@ namespace RxFSM
                 var capturedPrev = prev;
                 HandleAsyncEntry(sub, targetState,
                     ct => callback(capturedPrev, ct));
+            });
+
+            IDisposable exitHandle = policy == AsyncOperation.Switch
+                ? ExitState(targetState, (next, trg) => sub.Cts?.Cancel())
+                : Disposable.Empty;
+
+            return Disposable.Create(() =>
+            {
+                _asyncSubs?.Remove(sub);
+                CancelSubAndRelease(sub);
+                enterHandle.Dispose();
+                exitHandle.Dispose();
+            });
+        }
+
+        // ── State+Trigger filtered — (prev, trg, ct) ────────────────────────────
+
+        public IDisposable EnterStateAsync<TTrigger>(
+            TState targetState,
+            Func<TState, object, CancellationToken, Task> callback,
+            AsyncOperation policy)
+            where TTrigger : struct
+        {
+            var sub = new AsyncSub { Policy = policy, HasTargetState = true, TargetState = targetState };
+            (_asyncSubs ??= new List<AsyncSub>()).Add(sub);
+
+            var enterHandle = EnterState<TTrigger>(targetState, (prev, trg) =>
+            {
+                var capturedPrev = prev;
+                var capturedTrg  = trg;
+                HandleAsyncEntry(sub, targetState,
+                    ct => callback(capturedPrev, capturedTrg, ct));
             });
 
             IDisposable exitHandle = policy == AsyncOperation.Switch
