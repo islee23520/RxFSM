@@ -210,6 +210,36 @@ _sm.Interrupt(new DashInterrupt(sm: _sm, delay: 0.5f, speed: 20));
 
 ---
 
+**무적프레임** — 한번 만들어두면 여럿에게 재사용 가능.
+
+```csharp
+public class InvincibleFilter : ITransitionFilter
+{
+    public async ValueTask Invoke(
+        object trigger, TransitionContext ctx,
+        Func<ValueTask> next, CancellationToken ct)
+    {
+        if (trigger is Damaged && ctx.From == CharState.Hit)
+            return; // 무적 구간 — 전이 차단
+
+        await next(); // 그 외는 통과
+    }
+}
+```
+
+```csharp
+// 캐릭터마다 동일한 필터 인스턴스를 재사용
+var invFilter = new InvincibleFilter();
+
+playerSm .UseGlobalFilter(invFilter);
+enemySm  .UseGlobalFilter(invFilter);
+bossSm   .UseGlobalFilter(invFilter);
+```
+
+`UseGlobalFilter` applies middleware to every transition on that FSM. The filter decides whether to call `next()` (allow) or return without calling it (block). Stateless filters can be shared across as many FSMs as needed.
+
+---
+
 **Same trigger, different outcomes** — branching on HP.
 
 ```csharp
