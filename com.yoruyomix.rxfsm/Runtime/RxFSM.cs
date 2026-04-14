@@ -25,7 +25,8 @@ namespace RxFSM
         internal int _deactivateCount;
 
         public TState State => _current;
-        public Action<Exception, object, CallbackType> OnError { get; set; }
+        public Action<Exception, object, CallbackType> OnError    { get; set; }
+        public Action                                  OnDisposed { get; set; }
 
         internal FSM(TState initialState, List<EventTransition<TState>> transitions)
         {
@@ -163,6 +164,7 @@ namespace RxFSM
             DisposeFilters();
             DisposeChildren();
             _loopDisposables.Dispose();
+            OnDisposed?.Invoke();
         }
 
         private void SafeInvoke(Action action, object trg, CallbackType ct)

@@ -18,7 +18,8 @@ namespace RxFSM
             public TState                  TargetState; // meaningful only if HasTargetState
         }
 
-        private List<AsyncSub> _asyncSubs;
+        private List<AsyncSub>         _asyncSubs;
+        private Dictionary<TState, int> _activeDropCount;  // Drop-only counter (separate from _asyncThrottleCount)
 
         // ── Unfiltered — (cur, prev, ct) ─────────────────────────────────────────
 
@@ -175,11 +176,11 @@ namespace RxFSM
                     break;
 
                 case AsyncOperation.Drop:
-                    if (sub.IsActive) return;  // drop
+                    if (sub.IsActive) return;  // drop while task is running
                     sub.Cts      = new CancellationTokenSource();
                     sub.IsActive = true;
-                    IncrementAsyncThrottle(enteredState);
-                    _ = RunThrottleAsync(invoke, sub.Cts.Token, sub, enteredState);
+                    IncrementDropCount(enteredState);
+                    _ = RunDropAsync(invoke, sub.Cts.Token, sub, enteredState);
                     break;
             }
         }
@@ -210,6 +211,29 @@ namespace RxFSM
             }
         }
 
+        private async Task RunDropAsync(
+            Func<CancellationToken, Task> invoke,
+            CancellationToken             ct,
+            AsyncSub                      sub,
+            TState                        enteredState)
+        {
+            try
+            {
+                await invoke(ct);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                OnError?.Invoke(ex, null, CallbackType.EnterStateAsync);
+            }
+            finally
+            {
+                sub.IsActive = false;
+                DecrementDropCount(enteredState);
+                // Drop does NOT call TryReleasePending — blocked transitions are discarded
+            }
+        }
+
         private async Task RunFireAndForget(Task task)
         {
             try   { await task; }
@@ -233,6 +257,20 @@ namespace RxFSM
             if (c > 0) _asyncThrottleCount[state] = c - 1;
         }
 
+        private void IncrementDropCount(TState state)
+        {
+            _activeDropCount ??= new Dictionary<TState, int>();
+            _activeDropCount.TryGetValue(state, out var c);
+            _activeDropCount[state] = c + 1;
+        }
+
+        private void DecrementDropCount(TState state)
+        {
+            if (_activeDropCount == null ||
+                !_activeDropCount.TryGetValue(state, out var c)) return;
+            if (c > 0) _activeDropCount[state] = c - 1;
+        }
+
         // ── Cancel helpers (called by Guards / Dispose) ───────────────────────────
 
         internal void CancelAllAsyncCts()
@@ -254,12 +292,19 @@ namespace RxFSM
 
         private void CancelSubAndRelease(AsyncSub sub)
         {
+            // Always cancel any running task, regardless of policy.
+            // Switch/Parallel never set IsActive, but their CTS must still be cancelled on dispose.
+            sub.Cts?.Cancel();
             if (sub.IsActive)
             {
-                sub.Cts?.Cancel();
                 sub.IsActive = false;
                 if (sub.HasTargetState)
-                    DecrementAsyncThrottle(sub.TargetState);
+                {
+                    if (sub.Policy == AsyncOperation.Drop)
+                        DecrementDropCount(sub.TargetState);
+                    else
+                        DecrementAsyncThrottle(sub.TargetState);
+                }
             }
         }
 
@@ -271,6 +316,7 @@ namespace RxFSM
             foreach (var sub in _asyncSubs)
                 sub.Cts?.Cancel();
             _asyncSubs.Clear();
+            _activeDropCount?.Clear();
         }
     }
 }

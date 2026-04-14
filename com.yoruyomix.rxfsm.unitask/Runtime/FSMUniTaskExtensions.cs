@@ -21,17 +21,31 @@ namespace RxFSM
             IDisposable enterHandle = null;
             CancellationTokenRegistration ctReg = default;
 
-            enterHandle = sm.EnterState(targetState, (prev, trg) =>
+            void Cleanup()
             {
                 ctReg.Dispose();
                 enterHandle?.Dispose();
+                sm.OnDisposed -= OnFSMDisposed;
+            }
+
+            void OnFSMDisposed()
+            {
+                Cleanup();
+                tcs.TrySetCanceled();
+            }
+
+            enterHandle = sm.EnterState(targetState, (prev, trg) =>
+            {
+                Cleanup();
                 tcs.TrySetResult();
             });
+
+            sm.OnDisposed += OnFSMDisposed;
 
             if (ct.CanBeCanceled)
                 ctReg = ct.Register(() =>
                 {
-                    enterHandle?.Dispose();
+                    Cleanup();
                     tcs.TrySetCanceled(ct);
                 });
 
@@ -53,18 +67,32 @@ namespace RxFSM
             IDisposable enterHandle = null;
             CancellationTokenRegistration ctReg = default;
 
+            void Cleanup()
+            {
+                ctReg.Dispose();
+                enterHandle?.Dispose();
+                sm.OnDisposed -= OnFSMDisposed;
+            }
+
+            void OnFSMDisposed()
+            {
+                Cleanup();
+                tcs.TrySetCanceled();
+            }
+
             enterHandle = sm.EnterState((cur, prev, trg) =>
             {
                 if (!predicate((cur, trg))) return;
-                ctReg.Dispose();
-                enterHandle?.Dispose();
+                Cleanup();
                 tcs.TrySetResult();
             });
+
+            sm.OnDisposed += OnFSMDisposed;
 
             if (ct.CanBeCanceled)
                 ctReg = ct.Register(() =>
                 {
-                    enterHandle?.Dispose();
+                    Cleanup();
                     tcs.TrySetCanceled(ct);
                 });
 

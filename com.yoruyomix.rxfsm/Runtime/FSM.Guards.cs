@@ -31,7 +31,7 @@ namespace RxFSM
 
         private Dictionary<TState, object> _guardPending;
 
-        // ── AsyncOperation.Throttle/Drop count (set by FSM.Async.cs) ─────────────
+        // ── AsyncOperation.Throttle count (set by FSM.Async.cs) ─────────────────
 
         internal Dictionary<TState, int> _asyncThrottleCount;
 
@@ -42,9 +42,15 @@ namespace RxFSM
         // ── Guard API (called from ProcessEvaluate in RxFSM.cs) ─────────────────
 
         /// <summary>Returns true if any guard blocks the transition out of fromState.
-        /// Stores the trigger as pending (overwrite semantics).</summary>
+        /// Stores the trigger as pending (overwrite semantics), UNLESS Drop is active
+        /// (Drop discards incoming triggers rather than queuing them).</summary>
         internal bool IsGuardBlocking(TState fromState, object trigger)
         {
+            // Drop has highest priority: if active, block and discard (no pending storage).
+            if (_activeDropCount != null &&
+                _activeDropCount.TryGetValue(fromState, out var dropCnt) && dropCnt > 0)
+                return true;
+
             bool blocked = false;
 
             if (_throttleInfos != null && _throttleInfos.TryGetValue(fromState, out var ti) && ti.Active)
@@ -75,6 +81,9 @@ namespace RxFSM
         /// <summary>Returns true if any guard is still active for the given state.</summary>
         private bool AnyGuardActive(TState state)
         {
+            if (_activeDropCount != null &&
+                _activeDropCount.TryGetValue(state, out var dropCnt) && dropCnt > 0)
+                return true;
             if (_throttleInfos != null && _throttleInfos.TryGetValue(state, out var ti) && ti.Active)
                 return true;
             if (_holdInfos != null && _holdInfos.TryGetValue(state, out var hi) && hi.Holding)
@@ -108,6 +117,9 @@ namespace RxFSM
 
             if (_asyncThrottleCount != null)
                 _asyncThrottleCount[state] = 0;
+
+            if (_activeDropCount != null)
+                _activeDropCount[state] = 0;
 
             CancelAsyncCtsForState(state);
 
@@ -265,6 +277,14 @@ namespace RxFSM
                     _asyncThrottleCount[k] = 0;
             }
 
+            // Reset Drop counts
+            if (_activeDropCount != null)
+            {
+                var keys = new List<TState>(_activeDropCount.Keys);
+                foreach (var k in keys)
+                    _activeDropCount[k] = 0;
+            }
+
             // Cancel AutoTransition timers
             if (_autoTransitionTimers != null)
                 foreach (var t in _autoTransitionTimers)
@@ -294,6 +314,7 @@ namespace RxFSM
             _holdInfos?.Clear();
             _guardPending?.Clear();
             _asyncThrottleCount?.Clear();
+            _activeDropCount?.Clear();
         }
     }
 }

@@ -60,7 +60,9 @@ namespace RxFSM
     public interface IFSM<TState> : IFSMObserver<TState>, IFSMObservable<TState>, IDisposable
         where TState : Enum
     {
-        Action<Exception, object, CallbackType> OnError { get; set; }
+        Action<Exception, object, CallbackType> OnError    { get; set; }
+        /// <summary>Invoked once when Dispose() is called. Use += to register multiple listeners.</summary>
+        Action                                  OnDisposed { get; set; }
         IDisposable Connect<TTrigger>(
             Action<Action<TTrigger>> subscribe,
             Action<Action<TTrigger>> unsubscribe)

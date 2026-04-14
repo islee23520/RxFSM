@@ -442,8 +442,43 @@ provide a separate `API guide for AI`. Copy and paste it to your Claude, Gemini,
 
 ## Installation
 
-1. Download the latest package from Releases
-2. In Unity, go to `Assets > Import Package > Custom Package`
+### Core package
+
+Open **Window → Package Manager**, click **+** → **Add package from git URL**, and enter:
+
+```
+https://github.com/YoruYomix/RxFSM.git?path=Packages/RxFSM/com.yoruyomix.rxfsm
+```
+
+Or add directly to `Packages/manifest.json`:
+
+```json
+"com.yoruyomix.rxfsm": "https://github.com/YoruYomix/RxFSM.git?path=Packages/RxFSM/com.yoruyomix.rxfsm"
+```
+
+---
+
+### UniTask extension
+
+Requires [UniTask](https://github.com/Cysharp/UniTask) to be installed first.
+
+```
+https://github.com/YoruYomix/RxFSM.git?path=Packages/RxFSM/com.yoruyomix.rxfsm.unitask
+```
+
+Adds `ToUniTask(state, ct)` for awaiting state transitions.
+
+---
+
+### R3 extension
+
+Requires [R3](https://github.com/Cysharp/R3) to be installed first.
+
+```
+https://github.com/YoruYomix/RxFSM.git?path=Packages/RxFSM/com.yoruyomix.rxfsm.r3
+```
+
+Adds `Connect(IObservable<T>)` for bridging R3 / UniRx streams into the FSM.
 
 ---
 

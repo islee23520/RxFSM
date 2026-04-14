@@ -31,6 +31,12 @@ namespace RxFSM
         readonly struct Interrupt1  { }
         readonly struct Sprint      { }
 
+        // ── F4 nested-FSM types ───────────────────────────────────────────────────
+        enum F4ParentS { A, B }
+        enum F4ChildS  { X, Y }
+        readonly struct F4GoB { }
+        readonly struct F4GoY { }
+
         // ── Counter + Assert ─────────────────────────────────────────────────────
         int _pass, _fail;
         void Assert(bool c, string label)
@@ -44,8 +50,20 @@ namespace RxFSM
         {
             readonly Func<S, CancellationToken, Task> _fn;
             public LambdaInterrupt(Func<S, CancellationToken, Task> fn) { _fn = fn; }
-            public Task InvokeAsync(object state, CancellationToken ct)
-                => _fn((S)state, ct);
+            public ValueTask InvokeAsync(Enum currentState, CancellationToken ct)
+                => new ValueTask(_fn((S)currentState, ct));
+        }
+
+        // ── ITransitionFilter helper ──────────────────────────────────────────────
+        class PredicateFilter : ITransitionFilter
+        {
+            readonly Func<object, CancellationToken, Task<bool>> _pred;
+            public PredicateFilter(Func<object, CancellationToken, Task<bool>> pred) { _pred = pred; }
+            public async ValueTask Invoke(object trigger, TransitionContext ctx,
+                                          Func<ValueTask> next, CancellationToken ct)
+            {
+                if (await _pred(trigger, ct)) await next();
+            }
         }
 
         // ── Task → Coroutine bridge ──────────────────────────────────────────────
@@ -74,7 +92,7 @@ namespace RxFSM
             A7_EnterState_TriggerStateFiltered_ExcludesOtherStates();
 
             // Group D — Appendix B safety
-            D1_TriggerNull_NoException();
+            D1_TriggerUnregistered_NoException();
             D2_TriggerAfterDispose_NoException();
             D3_TransitionToSameState_NoCallbacks();
             D4_CallbackThrows_SequenceContinues();
@@ -459,18 +477,19 @@ namespace RxFSM
         // ═════════════════════════════════════════════════════════════════════════
 
         /// Trigger(null) → no-op, no exception (Appendix B)
-        void D1_TriggerNull_NoException()
+        void D1_TriggerUnregistered_NoException()
         {
             var sm = FSM.Create<S>(S.Idle)
                 .AddTransition<MoveStarted>(S.Idle, S.Walk)
                 .Build();
 
+            // Sprint has no registered transition from Idle — must be a silent no-op
             bool threw = false;
-            try { sm.Trigger<object>(null); }
+            try { sm.Trigger(new Sprint()); }
             catch { threw = true; }
 
-            Assert(!threw,           "T6.D1a — Trigger(null) does not throw");
-            Assert(sm.State == S.Idle, "T6.D1b — state unchanged after Trigger(null)");
+            Assert(!threw,             "T6.D1a — Trigger with no matching rule does not throw");
+            Assert(sm.State == S.Idle, "T6.D1b — state unchanged after unmatched trigger");
             sm.Dispose();
         }
 
@@ -554,17 +573,24 @@ namespace RxFSM
         IEnumerator D6_TickState_WhileDeactivated_Suppressed()
         {
             int ticks = 0;
-            var sm = FSM.Create<S>(S.Idle).Build();
+            // Start in Walk so we can transition into Idle to activate TickState.
+            // TickState.isActive is only true after an EnterState event fires.
+            var sm = FSM.Create<S>(S.Walk)
+                .AddTransition<MoveStopped>(S.Walk, S.Idle)
+                .Build();
             sm.TickState(S.Idle, (prev, trg) => ticks++);
 
-            var handle = sm.Deactivate();
-            yield return null; yield return null; yield return null;
+            sm.Trigger(new MoveStopped()); // enter Idle → isActive = true
+            yield return null;             // skipNext frame consumed
 
-            Assert(ticks == 0, "T6.D6a — TickState suppressed while deactivated");
+            var handle = sm.Deactivate();
+            int ticksBefore = ticks;
+            yield return null; yield return null; yield return null;
+            Assert(ticks == ticksBefore, "T6.D6a — TickState suppressed while deactivated");
 
             handle.Dispose();
             yield return null;
-            Assert(ticks > 0, "T6.D6b — TickState resumes after deactivate released");
+            Assert(ticks > ticksBefore, "T6.D6b — TickState resumes after deactivate released");
             sm.Dispose();
         }
 
@@ -754,35 +780,30 @@ namespace RxFSM
         /// T6.F4 — Nested FSM: parent Dispose recursively disposes children (Appendix B)
         IEnumerator F4_NestedFSM_ParentDispose_ChildrenDisposed()
         {
-            enum ParentS { A, B }
-            enum ChildS  { X, Y }
-            readonly struct GoB { }
-            readonly struct GoY { }
-
             int childEnterCount = 0;
 
-            var child = FSM.Create<ChildS>(ChildS.X)
-                .AddTransition<GoY>(ChildS.X, ChildS.Y)
+            var child = FSM.Create<F4ChildS>(F4ChildS.X)
+                .AddTransition<F4GoY>(F4ChildS.X, F4ChildS.Y)
                 .Build();
             child.EnterState((cur, prev) => childEnterCount++);
 
-            var parent = FSM.Create<ParentS>(ParentS.A)
-                .AddTransition<GoB>(ParentS.A, ParentS.B)
-                .Register(ParentS.A, child)
+            var parent = FSM.Create<F4ParentS>(F4ParentS.A)
+                .AddTransition<F4GoB>(F4ParentS.A, F4ParentS.B)
+                .Register(F4ParentS.A, child)
                 .Build();
 
-            parent.Trigger(new GoY()); // propagates to child
-            Assert(child.State == ChildS.Y, "T6.F4a — trigger propagated to child");
-            Assert(childEnterCount == 1,    "T6.F4b — child EnterState fired");
+            parent.Trigger(new F4GoY()); // propagates to child
+            Assert(child.State == F4ChildS.Y, "T6.F4a — trigger propagated to child");
+            Assert(childEnterCount == 1,      "T6.F4b — child EnterState fired");
 
             parent.Dispose(); // should recursively dispose child
 
             bool childThrew = false;
-            try { child.Trigger(new GoY()); }
+            try { child.Trigger(new F4GoY()); }
             catch { childThrew = true; }
 
-            Assert(!childThrew,             "T6.F4c — child.Trigger after parent.Dispose: no exception");
-            Assert(child.State == ChildS.Y, "T6.F4d — child state unchanged (no-op after dispose)");
+            Assert(!childThrew,               "T6.F4c — child.Trigger after parent.Dispose: no exception");
+            Assert(child.State == F4ChildS.Y, "T6.F4d — child state unchanged (no-op after dispose)");
             int countBefore = childEnterCount;
             Assert(childEnterCount == countBefore, "T6.F4e — child EnterState not fired after dispose");
 
@@ -801,12 +822,12 @@ namespace RxFSM
             var sm = FSM.Create<S>(S.Idle)
                 .AddTransition<AttackInput>(S.Idle, S.Attack)
                 .AddTransition<AttackEnd>  (S.Attack, S.Idle)
-                .AddTransitionFilter(async (trigger, next, ct) =>
+                .UseGlobalFilter(new PredicateFilter(async (trigger, ct) =>
                 {
                     filterRan = true;
                     await Task.Delay(10, ct); // tiny async gap
                     return true;              // allow
-                })
+                }))
                 .Build();
 
             sm.EnterStateAsync<AttackInput>(S.Attack, async (prev, trg, ct) =>
@@ -904,11 +925,11 @@ namespace RxFSM
                 bool allowed = false;
                 var sm = FSM.Create<S>(S.Idle)
                     .AddTransition<MoveStarted>(S.Idle, S.Walk)
-                    .AddTransitionFilter(async (trg, next, ct) =>
+                    .UseGlobalFilter(new PredicateFilter(async (trg, ct) =>
                     {
                         await Task.CompletedTask;
                         return allowed;
-                    })
+                    }))
                     .Build();
 
                 sm.Trigger(new MoveStarted());

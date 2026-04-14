@@ -28,11 +28,16 @@ namespace RxFSM
 
         void IFSM.Evaluate(object trigger) => Evaluate(trigger);
 
-        void IFSM.IncrementDeactivate() => _deactivateCount++;
+        void IFSM.IncrementDeactivate()
+        {
+            _deactivateCount++;
+            IncrementChildrenDeactivate(); // propagate to grandchildren
+        }
 
         void IFSM.DecrementDeactivate()
         {
             if (_deactivateCount > 0) _deactivateCount--;
+            DecrementChildrenDeactivate(); // propagate to grandchildren
         }
 
         // ── GetActiveStateHierarchy ───────────────────────────────────────────────
