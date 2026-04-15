@@ -23,7 +23,7 @@ public readonly struct Damaged {  // The event "Damaged"
 // Trigger a new "Damaged" event: 50 damage, Fire element, from the hit direction.
 sm.Trigger(new Damaged(50f, Element.Fire, hitDir));
 
-.AddTransitionFromAny<Damaged> // When the "Damaged" event is triggered
+sm.AddTransitionFromAny<Damaged> // When the "Damaged" event is triggered
 (
       _ => !invincible, // if not invincible,
       to: CharState.Hit  // transition to the Hit state.
