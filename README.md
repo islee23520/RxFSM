@@ -7,11 +7,11 @@
 ---
 
 ```csharp
-// On taking damage  // We've entered Hit state, so
+      // On taking damage    // if we've entered Hit state
 sm.EnterState<Damaged>(State.Hit, (prev, trg) =>
 {
     switch (trg.element)  // Branch on damage element
-    {   // Play the matching effect
+    {   // Play Fire, Ice, or Dark effect in this direction
         case Element.Fire: SpawnFireEffect(trg.direction); break;
         case Element.Ice:  SpawnIceEffect(trg.direction);  break;
         case Element.Dark: SpawnDarkEffect(trg.direction); break;
@@ -24,10 +24,10 @@ sm.EnterState<Damaged>(State.Hit, (prev, trg) =>
 ```csharp
 // The trigger that causes the state change is just as readable
 // C# < 10
-public readonly struct Damaged {
-    public readonly float amount;
-    public readonly Element element;
-    public readonly Vector3 direction;
+public readonly struct Damaged {  // "Damaged" is what causes the state change
+    public readonly float amount;     // damage value
+    public readonly Element element;  // element type
+    public readonly Vector3 direction;  // direction
 
     public Damaged(float amount, Element element, Vector3 direction) {
         this.amount = amount;
@@ -35,7 +35,7 @@ public readonly struct Damaged {
         this.direction = direction; }
 }
 
-// C# 10+
+// C# 10+ makes it even more concise!
 public readonly record struct Damaged(float amount, Element element, Vector3 direction);
 ```
 
@@ -45,21 +45,34 @@ public readonly record struct Damaged(float amount, Element element, Vector3 dir
 
 ```csharp
 var sm = RxFSM.Create<CharState>(CharState.Idle)
-    .AddTransition<MoveStarted>( from: CharState.Idle,   to: CharState.Walk)
-    .AddTransition<MoveStopped>( from: CharState.Walk,   to: CharState.Idle)
-    .AddTransition<Sprint>(trg => speed > 5f,      
-                                 from: CharState.Walk,   to: CharState.Run)  
+                          
+    .AddTransition<MoveStarted>  // When movement starts
+    ( 
+        from: CharState.Idle,    // from idle
+        to: CharState.Walk       // to walk
+    )
+    .AddTransition<MoveStopped>  // When movement stops
+    ( 
+        from: CharState.Walk,    // from walk
+        to: CharState.Idle       // to idle
+    )
+    .AddTransition<Sprint>       // When sprinting
+    (
+        trg => speed > 5f,       // and speed exceeds 5
+        from: CharState.Walk,    // from walk
+        to: CharState.Run        // to run
+    )
     .AddTransition<MoveStopped>( from: CharState.Run,    to: CharState.Walk)
     .AddTransitionFromAny<Damaged>(                      to: CharState.Hit)
     .AddTransition<Recovered>(   from: CharState.Hit,    to: CharState.Idle)
     .Build();
 ```
 
-`RxFSM.Create` is the **transition table.** All transitions in one place, readable at a glance.
+Reads like a character spec sheet, doesn't it?
 
 ---
 
-**Attack cooldown**  — in one line.
+**Attack cooldown** — no complex timer logic, just one line
 
 ```csharp
 var sm = RxFSM.Create<CharState>(CharState.Idle)

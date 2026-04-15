@@ -7,11 +7,11 @@
 ---
 
 ```csharp
-// 데미지를 받아  // Hit 상태가 됐으니
+      // 데미지를 받아    // Hit 상태가 됬다면
 sm.EnterState<Damaged>(State.Hit, (prev, trg) =>
 {
     switch (trg.element)  // 데미지의 속성에 따라
-    {   // 속성 이펙트를 재생하고
+    {   // 화염, 얼음 또는 암흑속성 이펙트를 이 방향으로 재생하고
         case Element.Fire: SpawnFireEffect(trg.direction); break;
         case Element.Ice:  SpawnIceEffect(trg.direction);  break;
         case Element.Dark: SpawnDarkEffect(trg.direction); break;
@@ -24,10 +24,10 @@ sm.EnterState<Damaged>(State.Hit, (prev, trg) =>
 ```csharp
 // 상태가 바뀌는 원인도 기획서 쓰듯이 짤 수 있어요
 // C# < 10
-public readonly struct Damaged {
-    public readonly float amount;
-    public readonly Element element;
-    public readonly Vector3 direction;
+public readonly struct Damaged {  // "피해받음" 으로 인해 상태가 바뀜
+    public readonly float amount;   // 피해량
+    public readonly Element element;  // 속성
+    public readonly Vector3 direction;  // 방향
 
     public Damaged(float amount, Element element, Vector3 direction) {
         this.amount = amount;
@@ -35,7 +35,7 @@ public readonly struct Damaged {
         this.direction = direction; }
 }
 
-// C# 10+
+// C# 10+ 면 더 간결하게도 가능!
 public readonly record struct Damaged(float amount, Element element, Vector3 direction);
 ```
 
@@ -45,21 +45,34 @@ public readonly record struct Damaged(float amount, Element element, Vector3 dir
 
 ```csharp
 var sm = RxFSM.Create<CharState>(CharState.Idle)
-    .AddTransition<MoveStarted>( from: CharState.Idle,   to: CharState.Walk)
-    .AddTransition<MoveStopped>( from: CharState.Walk,   to: CharState.Idle)
-    .AddTransition<Sprint>(trg => speed > 5f,
-                                 from: CharState.Walk,   to: CharState.Run)
+                          
+    .AddTransition<MoveStarted> // 움직이기 시작하면
+    ( 
+        from: CharState.Idle,    // 평상시에서 
+        to: CharState.Walk       // 걷기로
+    )
+    .AddTransition<MoveStopped>   // 움직임을 멈추면
+    ( 
+        from: CharState.Walk,   // 걷기에서
+        to: CharState.Idle       // 평상시로
+    )
+    .AddTransition<Sprint>   // 달렸는데
+    (
+        trg => speed > 5f,    // 속도가 5보다 빠르면
+        from: CharState.Walk,   // 걷기에서
+        to: CharState.Run       // 달리기로
+    )
     .AddTransition<MoveStopped>( from: CharState.Run,    to: CharState.Walk)
     .AddTransitionFromAny<Damaged>(                      to: CharState.Hit)
     .AddTransition<Recovered>(   from: CharState.Hit,    to: CharState.Idle)
     .Build();
 ```
 
-`RxFSM.Create`는 **전이 테이블**입니다. 모든 전이를 한 곳에, 한눈에 읽을 수 있습니다.
+어때요, 기획서를 보는 것 처럼 캐릭터의 움직임이 그려지지 않나요?
 
 ---
 
-**공격 쿨다운** — 한 줄로.
+**공격 쿨다운** — 복잡한 타이머 처리 없이 한 줄로
 
 ```csharp
 var sm = RxFSM.Create<CharState>(CharState.Idle)

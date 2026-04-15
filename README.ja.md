@@ -7,11 +7,11 @@
 ---
 
 ```csharp
-// ダメージを受けて  // Hit状態になったので
+      // ダメージを受けて    // Hit状態になったなら
 sm.EnterState<Damaged>(State.Hit, (prev, trg) =>
 {
     switch (trg.element)  // ダメージの属性に応じて
-    {   // 属性エフェクトを再生し
+    {   // 炎・氷・闇属性のエフェクトをこの方向に再生して
         case Element.Fire: SpawnFireEffect(trg.direction); break;
         case Element.Ice:  SpawnIceEffect(trg.direction);  break;
         case Element.Dark: SpawnDarkEffect(trg.direction); break;
@@ -24,10 +24,10 @@ sm.EnterState<Damaged>(State.Hit, (prev, trg) =>
 ```csharp
 // 状態が変わる原因も、企画書を書くように定義できます
 // C# < 10
-public readonly struct Damaged {
-    public readonly float amount;
-    public readonly Element element;
-    public readonly Vector3 direction;
+public readonly struct Damaged {  // 「ダメージを受けた」ことが状態を変える
+    public readonly float amount;     // ダメージ量
+    public readonly Element element;  // 属性
+    public readonly Vector3 direction;  // 方向
 
     public Damaged(float amount, Element element, Vector3 direction) {
         this.amount = amount;
@@ -35,7 +35,7 @@ public readonly struct Damaged {
         this.direction = direction; }
 }
 
-// C# 10+
+// C# 10+ ならさらに簡潔に書けます！
 public readonly record struct Damaged(float amount, Element element, Vector3 direction);
 ```
 
@@ -45,21 +45,34 @@ public readonly record struct Damaged(float amount, Element element, Vector3 dir
 
 ```csharp
 var sm = RxFSM.Create<CharState>(CharState.Idle)
-    .AddTransition<MoveStarted>( from: CharState.Idle,   to: CharState.Walk)
-    .AddTransition<MoveStopped>( from: CharState.Walk,   to: CharState.Idle)
-    .AddTransition<Sprint>(trg => speed > 5f,
-                                 from: CharState.Walk,   to: CharState.Run)
+                          
+    .AddTransition<MoveStarted>  // 動き始めたら
+    ( 
+        from: CharState.Idle,    // 通常状態から
+        to: CharState.Walk       // 歩きへ
+    )
+    .AddTransition<MoveStopped>  // 動きが止まったら
+    ( 
+        from: CharState.Walk,    // 歩きから
+        to: CharState.Idle       // 通常状態へ
+    )
+    .AddTransition<Sprint>       // ダッシュしたとき
+    (
+        trg => speed > 5f,       // 速度が5を超えていたら
+        from: CharState.Walk,    // 歩きから
+        to: CharState.Run        // 走りへ
+    )
     .AddTransition<MoveStopped>( from: CharState.Run,    to: CharState.Walk)
     .AddTransitionFromAny<Damaged>(                      to: CharState.Hit)
     .AddTransition<Recovered>(   from: CharState.Hit,    to: CharState.Idle)
     .Build();
 ```
 
-`RxFSM.Create` は**トランジションテーブル**です。すべての遷移を一か所に、一目で読める形で記述します。
+キャラクターの動きが、まるで企画書を見ているように浮かびませんか？
 
 ---
 
-**攻撃クールダウン** — 1行で.
+**攻撃クールダウン** — 複雑なタイマー処理なしに一行で
 
 ```csharp
 var sm = RxFSM.Create<CharState>(CharState.Idle)
