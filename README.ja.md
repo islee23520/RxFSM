@@ -55,6 +55,32 @@ var sm = RxFSM.Create<CharState>(CharState.Idle)
 
 ---
 
+**詠唱中に妨害された魔法使い** — キャンセル時にマナ半分還元.
+
+```csharp
+        // CastSpellというイベントが発火して    // 詠唱状態になったなら
+sm.EnterStateAsync<CastSpell>(State.Casting, async (prev, trg, ct) =>
+{
+    if (trg.Spell == Spell.MeteorSwarm) // 呪文がミティアスウォームなら
+    {
+        try
+        {
+            mana -= trg.ManaCost;  // マナを消費して
+            await PrepareMeteorSwarmAsync(trg.Target, trg.SkillLevel, ct); // 詠唱を始める
+            CastMeteorSwarm(trg.Target, trg.Power, trg.SkillLevel); // そして放つ
+        }
+        catch(OperationCanceledException)  // 詠唱がキャンセルされたら
+        {
+            mana += trg.ManaCost * 0.5f;  // マナを半分還元
+        } // ゲームの一場面を読んでいるようですね？
+    }
+}, AsyncOperation.Switch);
+```
+
+`AsyncOperation.Switch` は別の状態に遷移するとき、**キャンセルトークン**を発動して今の処理をキャンセルします。
+
+---
+
 **ダメージを受けるというゲーム内イベント**も、企画書を書くようにコーディングできます
 
 ```csharp
@@ -87,31 +113,6 @@ var sm = RxFSM.Create<CharState>(CharState.Idle)
 ```
 
 `ThrottleState` が攻撃ディレイ、ヒットスタン、クールダウンをまとめて処理します。
-
----
-
-**詠唱中に妨害された魔法使い** — キャンセル時にマナ半分還元.
-
-```csharp
-sm.EnterStateAsync<CastSpell>(State.Casting, async (prev, trg, ct) =>
-{
-    if (trg.Spell == Spell.MeteorSwarm)
-    {
-        try
-        {
-            mana -= trg.ManaCost;
-            await PrepareMeteorSwarmAsync(trg.Target, trg.SkillLevel, ct);
-            CastMeteorSwarm(trg.Target, trg.Power, trg.SkillLevel);
-        }
-        catch(OperationCanceledException)
-        {
-            mana += trg.ManaCost * 0.5f;
-        }
-    }
-}, AsyncOperation.Switch);
-```
-
-`AsyncOperation.Switch` は別の状態に遷移するとき、**キャンセルトークン**を自動的に発動します。
 
 ---
 

@@ -55,6 +55,32 @@ Reads like a character spec sheet, doesn't it?
 
 ---
 
+**Wizard interrupted mid-cast** — spell cancelled, half mana refunded.
+
+```csharp
+        // The CastSpell event fires    // and we've entered Casting state
+sm.EnterStateAsync<CastSpell>(State.Casting, async (prev, trg, ct) =>
+{
+    if (trg.Spell == Spell.MeteorSwarm) // if the spell is Meteor Swarm
+    {
+        try
+        {
+            mana -= trg.ManaCost;  // spend the mana
+            await PrepareMeteorSwarmAsync(trg.Target, trg.SkillLevel, ct); // begin the incantation
+            CastMeteorSwarm(trg.Target, trg.Power, trg.SkillLevel); // and let it fly
+        }
+        catch(OperationCanceledException)  // if the cast is cancelled
+        {
+            mana += trg.ManaCost * 0.5f;  // refund half the mana
+        } // reads like a scene from the game, doesn't it?
+    }
+}, AsyncOperation.Switch);
+```
+
+`AsyncOperation.Switch` cancels whatever is in progress when transitioning to a different state — by firing the **cancellation token**.
+
+---
+
 **In-game events like taking damage** can be coded the same way.
 
 ```csharp
@@ -87,31 +113,6 @@ var sm = RxFSM.Create<CharState>(CharState.Idle)
 ```
 
 `ThrottleState` handles attack delay, hitstun, and cooldowns all at once.
-
----
-
-**Wizard interrupted mid-cast** — spell cancelled, half mana refunded.
-
-```csharp
-sm.EnterStateAsync<CastSpell>(State.Casting, async (prev, trg, ct) =>
-{
-    if (trg.Spell == Spell.MeteorSwarm)
-    {
-	    try
-	    {
-		    mana -= trg.ManaCost;
-			await PrepareMeteorSwarmAsync(trg.Target, trg.SkillLevel, ct);
-			CastMeteorSwarm(trg.Target, trg.Power, trg.SkillLevel);
-	    }
-	    catch(OperationCanceledException)
-	    {
-		    mana += trg.ManaCost * 0.5f;
-	    }
-    }   
-}, AsyncOperation.Switch);
-```
-
-`AsyncOperation.Switch` automatically triggers the **cancellation token** when transitioning to a different state.
 
 ---
 

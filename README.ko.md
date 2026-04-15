@@ -55,6 +55,32 @@ var sm = RxFSM.Create<CharState>(CharState.Idle)
 
 ---
 
+**영창 도중 방해받는 마법사** — 취소 시 마나 절반 환불.
+
+```csharp
+        // 주문을 쓴다는 사건으로    // 영창하는 상태가 되었는데
+sm.EnterStateAsync<CastSpell>(State.Casting, async (prev, trg, ct) =>
+{
+    if (trg.Spell == Spell.MeteorSwarm) // 주문이 미티어 스웜 이라면
+    {
+        try
+        {
+            mana -= trg.ManaCost;  // 마나를 사용한 뒤
+            await PrepareMeteorSwarmAsync(trg.Target, trg.SkillLevel, ct); // 주문을 영창하다
+            CastMeteorSwarm(trg.Target, trg.Power, trg.SkillLevel); // 미티어 스웜을 날립니다
+        }
+        catch(OperationCanceledException)  // 영창이 취소된다면
+        {
+            mana += trg.ManaCost * 0.5f;  // 마나의 절반을 돌려받구요
+        } // 코드가 마치 게임의 한 장면을 보는 것 같죠?
+    }
+}, AsyncOperation.Switch); 
+```
+
+`AsyncOperation.Switch`는 다른 상태가 될 때 지금 하고있는 걸 취소합니다. **캔슬레이션 토큰**을 발동해서요.
+
+---
+
 **데미지를 받는다는 게임속 사건**도 기획서 쓰듯이 코딩할 수 있어요
 
 ```csharp
@@ -74,7 +100,7 @@ public readonly struct Damaged {  // "피해받음" 이라는 사건
 public readonly record struct Damaged(float amount, Element element, Vector3 direction);
 ```
 
----
+--- 
 
 **공격 쿨다운** — 복잡한 타이머 처리 없이 한 줄로
 
@@ -87,33 +113,6 @@ var sm = RxFSM.Create<CharState>(CharState.Idle)
 ```
 
 `ThrottleState`가 공격 딜레이, 히트스턴, 쿨다운을 한 번에 처리합니다.
-
----
-
-**영창 도중 방해받는 마법사** — 취소 시 마나 절반 환불.
-
-```csharp
-sm.EnterStateAsync<CastSpell>(State.Casting, async (prev, trg, ct) =>
-{
-    if (trg.Spell == Spell.MeteorSwarm)
-    {
-        try
-        {
-            mana -= trg.ManaCost;
-            await PrepareMeteorSwarmAsync(trg.Target, trg.SkillLevel, ct);
-            CastMeteorSwarm(trg.Target, trg.Power, trg.SkillLevel);
-        }
-        catch(OperationCanceledException)
-        {
-            mana += trg.ManaCost * 0.5f;
-        }
-    }
-}, AsyncOperation.Switch);
-```
-
-`AsyncOperation.Switch`는 다른 상태로 전이할 때 **캔슬레이션 토큰**을 자동으로 발동합니다.
-
----
 
 ---
 
