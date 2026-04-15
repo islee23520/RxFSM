@@ -81,15 +81,9 @@ sm.EnterStateAsync<CastSpell>(State.Casting, async (prev, trg, ct) =>
 
 ---
 
-**캐릭터를 움직이게 하는 사건(트리거)** 도 기획서 쓰듯이 코딩할 수 있어요
+**캐릭터를 움직이게 하는 사건** 도 기획서 쓰듯이 코딩할 수 있어요
 
 ```csharp
-.AddTransitionFromAny<Damaged> // 피해받음 이라는 사건(트리거)가 발생했는데
-(
-      _ => !invincible, // 무적이 아니라면
-      to: CharState.Hit  // 공격받음
-)
-
 public readonly struct Damaged {  // "피해받음" 이라는 사건은
     public readonly float amount;   // 피해량과
     public readonly Element element;  // 속성과
@@ -102,10 +96,19 @@ public readonly struct Damaged {  // "피해받음" 이라는 사건은
         this.direction = direction; }
 }
 
+// 트리거한다, 새로운 "피해받음" 이라는 사건을. 50피해량, 불속성, 맞은 방향으로 
+sm.Trigger(new Damaged(50f, Element.Fire, hitDir));
+
+.AddTransitionFromAny<Damaged> // 피해받음 이라는 사건이 트리거 되면
+(
+      _ => !invincible, // 무적이 아니라면
+      to: CharState.Hit  // 공격받는다
+)
+// 코드만 봐도 게임 속 장면이 그려지지 않나요?
+
 // C# 10+ 면 더 간결하게도 가능!
 public readonly record struct Damaged(float amount, Element element, Vector3 direction);
 ```
-
 --- 
 
 **공격 쿨다운** — 복잡한 타이머 처리 없이 한 줄로
