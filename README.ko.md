@@ -5,9 +5,31 @@
 **[API 레퍼런스 & 상세 가이드](API_REFERENCE.md)** — 정확한 동작 순서, 사용 패턴, 예문을 담은 상세 매뉴얼입니다. 직접 참고하거나, Claude·Gemini·ChatGPT에 붙여넣으면 AI가 정확한 코드를 생성할 수 있습니다.
 
 ---
+**마치 기획서를 쓰듯이 코딩이 가능해집니다**
 
 ```csharp
-      // 데미지를 받아    // Hit 상태가 됬다면
+public readonly struct Damaged {  // "피해받음" 이라는 사건은
+    public readonly float amount;   // 피해량과
+    public readonly Element element;  // 속성과
+    public readonly Vector3 direction;  // 방향이 있어야 한다
+// 기획 문서 같죠?
+
+      public Damaged(float amount, Element element, Vector3 direction) {
+        this.amount = amount;
+        this.element = element;
+        this.direction = direction; }
+}
+
+// 트리거한다, 새로운 "피해받음" 이라는 사건을. 50피해량, 불속성, 맞은 방향으로 
+sm.Trigger(new Damaged(50f, Element.Fire, hitDir));
+
+.AddTransitionFromAny<Damaged> // 피해받음 이라는 사건이 트리거 되면
+(
+      _ => !invincible, // 무적이 아니라면
+      to: CharState.Hit  // Hit 상태가 된다
+)
+
+// 데미지를 받아    // Hit 상태가 됬다면
 sm.EnterState<Damaged>(State.Hit, (prev, trg) =>
 {
     switch (trg.element)  // 데미지의 속성에 따라
@@ -20,9 +42,14 @@ sm.EnterState<Damaged>(State.Hit, (prev, trg) =>
 });
 
 ```
-**마치 기획서를 쓰듯이 코딩이 가능해집니다**
+**코드만 봐도 게임 속 장면이 그려지지 않나요?**
 
----
+```csharp
+
+// C# 10+ 면 더 간결하게도 가능!
+public readonly record struct Damaged(float amount, Element element, Vector3 direction);
+```
+--- 
 
 **캐릭터가 왜 움직이는지 한눈에 파악됩니다.**
 
@@ -80,36 +107,6 @@ sm.EnterStateAsync<CastSpell>(State.Casting, async (prev, trg, ct) =>
 `AsyncOperation.Switch`는 다른 상태가 될 때 지금 하고있는 걸 취소합니다. **캔슬레이션 토큰**을 발동해서요.
 
 ---
-
-**캐릭터를 움직이게 하는 사건** 도 기획서 쓰듯이 코딩할 수 있어요
-
-```csharp
-public readonly struct Damaged {  // "피해받음" 이라는 사건은
-    public readonly float amount;   // 피해량과
-    public readonly Element element;  // 속성과
-    public readonly Vector3 direction;  // 방향이 있어야 한다
-// 기획 문서 같죠?
-
-      public Damaged(float amount, Element element, Vector3 direction) {
-        this.amount = amount;
-        this.element = element;
-        this.direction = direction; }
-}
-
-// 트리거한다, 새로운 "피해받음" 이라는 사건을. 50피해량, 불속성, 맞은 방향으로 
-sm.Trigger(new Damaged(50f, Element.Fire, hitDir));
-
-.AddTransitionFromAny<Damaged> // 피해받음 이라는 사건이 트리거 되면
-(
-      _ => !invincible, // 무적이 아니라면
-      to: CharState.Hit  // 공격받는다
-)
-// 코드만 봐도 게임 속 장면이 그려지지 않나요?
-
-// C# 10+ 면 더 간결하게도 가능!
-public readonly record struct Damaged(float amount, Element element, Vector3 direction);
-```
---- 
 
 **공격 쿨다운** — 복잡한 타이머 처리 없이 한 줄로
 
