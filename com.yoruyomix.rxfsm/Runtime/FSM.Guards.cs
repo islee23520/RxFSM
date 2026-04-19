@@ -37,7 +37,7 @@ namespace RxFSM
 
         // ── AutoTransition timer handles (for Deactivate cancellation) ──────────
 
-        private List<SerialDisposable> _autoTransitionTimers;
+        private List<FSMSerialDisposable> _autoTransitionTimers;
 
         // ── Guard API (called from ProcessEvaluate in RxFSM.cs) ─────────────────
 
@@ -190,8 +190,8 @@ namespace RxFSM
 
         internal void ConfigureAutoTransitionTime(TState from, TState to, float time)
         {
-            _autoTransitionTimers ??= new List<SerialDisposable>();
-            var timerHandle = new SerialDisposable();
+            _autoTransitionTimers ??= new List<FSMSerialDisposable>();
+            var timerHandle = new FSMSerialDisposable();
             _autoTransitionTimers.Add(timerHandle);
             timerHandle.AddTo(_loopDisposables);
 

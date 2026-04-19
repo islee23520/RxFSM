@@ -193,14 +193,14 @@ using (sm.TriggerEveryUpdate(new DotDamage(2)))
 IDisposable h1 = sm.TriggerEveryUpdate(new DotDamage(1));
 IDisposable h2 = sm.TriggerEveryUpdate(new DotDamage(3));
 
-// CompositeDisposable — batch release
-var cd = new CompositeDisposable();
+// FSMCompositeDisposable — batch release
+var cd = new FSMCompositeDisposable();
 sm.TriggerEveryUpdate(new DotDamage(1)).AddTo(cd);
 sm.TriggerEveryUpdate(new DotDamage(3)).AddTo(cd);
 cd.Dispose();
 
-// SerialDisposable — only one active at a time; assigning a new one disposes the previous
-var sd = new SerialDisposable();
+// FSMSerialDisposable — only one active at a time; assigning a new one disposes the previous
+var sd = new FSMSerialDisposable();
 sd.Disposable = sm.TriggerEveryUpdate(new DotDamage(1));
 sd.Disposable = sm.TriggerEveryUpdate(new DotDamage(3)); // previous auto-disposed
 sd.Dispose();
@@ -564,7 +564,7 @@ battleFsm.EnterStateAsync<UltimateActivated>(BattleState.UltimateCutscene,
     async (TState prev, object trg, CancellationToken ct) =>
     {
         var u = (UltimateActivated)trg;
-        using (var cd = new CompositeDisposable())
+        using (var cd = new FSMCompositeDisposable())
         {
             foreach (var ch in allCharacters)
                 if (ch != u.caster) ch.sm.Deactivate().AddTo(cd);

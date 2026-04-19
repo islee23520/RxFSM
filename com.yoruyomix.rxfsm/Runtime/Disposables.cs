@@ -26,7 +26,7 @@ namespace RxFSM
         }
     }
 
-    public sealed class CompositeDisposable : IDisposable, ICollection<IDisposable>
+    public sealed class FSMCompositeDisposable : IDisposable, ICollection<IDisposable>
     {
         private readonly List<IDisposable> _list = new List<IDisposable>();
         private bool _disposed;
@@ -60,7 +60,7 @@ namespace RxFSM
         IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();
     }
 
-    public sealed class SerialDisposable : IDisposable
+    public sealed class FSMSerialDisposable : IDisposable
     {
         private IDisposable _current;
         private bool _disposed;
@@ -92,13 +92,13 @@ namespace RxFSM
 
     public static class DisposableExtensions
     {
-        public static T AddTo<T>(this T disposable, CompositeDisposable composite) where T : IDisposable
+        public static T AddTo<T>(this T disposable, FSMCompositeDisposable composite) where T : IDisposable
         {
             composite.Add(disposable);
             return disposable;
         }
 
-        public static T AddTo<T>(this T disposable, SerialDisposable serial) where T : IDisposable
+        public static T AddTo<T>(this T disposable, FSMSerialDisposable serial) where T : IDisposable
         {
             serial.Disposable = disposable;
             return disposable;

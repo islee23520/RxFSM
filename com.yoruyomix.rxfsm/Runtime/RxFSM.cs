@@ -19,7 +19,7 @@ namespace RxFSM
         internal Action<TState, TState, object> _testTransitionHook;
 
         // Central bucket for all FSMLoop registrations.
-        private readonly CompositeDisposable _loopDisposables = new CompositeDisposable();
+        private readonly FSMCompositeDisposable _loopDisposables = new FSMCompositeDisposable();
 
         // Phase 3
         internal int _deactivateCount;

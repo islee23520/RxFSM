@@ -702,7 +702,7 @@ var battleFsm = RxFSM.Create<BattleState>(BattleState.Preparing)
 
 battleFsm.EnterStateAsync<UltimateActivated>(BattleState.UltimateCutscene, async (prev, trg, ct) =>
 {
-    using(var handle = new CompositeDisposable())
+    using(var handle = new FSMCompositeDisposable())
     {
         foreach (var ch in allCharacters)
             if (ch != trg.caster) ch.sm.Deactivate().AddTo(handle);
