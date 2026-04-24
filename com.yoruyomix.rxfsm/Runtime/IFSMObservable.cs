@@ -16,22 +16,38 @@ namespace RxFSM
         IDisposable EnterState(Action<TState, TState> callback);
         IDisposable EnterState(Action<TState, TState, object> callback);
         IDisposable EnterState(TState targetState, Action<TState, object> callback);
+        IDisposable EnterState<TTrigger>(Action<TState, TState, object> callback)
+            where TTrigger : struct;
+        IDisposable EnterState<TTrigger>(TState targetState, Action<TState, TTrigger> callback)
+            where TTrigger : struct;
 
         // ── ExitState ─────────────────────────────────────────────────────────────
         IDisposable ExitState(Action<TState, TState> callback);
         IDisposable ExitState(Action<TState, TState, object> callback);
+        IDisposable ExitState(TState targetState, Action<TState, object> callback);
+        IDisposable ExitState<TTrigger>(Action<TState, TState, object> callback)
+            where TTrigger : struct;
+        IDisposable ExitState<TTrigger>(TState targetState, Action<TState, TTrigger> callback)
+            where TTrigger : struct;
 
         // ── TickState ─────────────────────────────────────────────────────────────
         IDisposable TickState(TState targetState, Action<TState, object> callback);
 
-        // ── Async overloads ───────────────────────────────────────────────────────
+        // ── EnterStateAsync ───────────────────────────────────────────────────────
         IDisposable EnterStateAsync(
             Func<TState, TState, CancellationToken, Task> callback,
             AsyncOperation policy);
-
+        IDisposable EnterStateAsync(
+            Func<TState, TState, object, CancellationToken, Task> callback,
+            AsyncOperation policy);
         IDisposable EnterStateAsync(
             TState targetState,
             Func<TState, CancellationToken, Task> callback,
             AsyncOperation policy);
+        IDisposable EnterStateAsync<TTrigger>(
+            TState targetState,
+            Func<TState, TTrigger, CancellationToken, Task> callback,
+            AsyncOperation policy)
+            where TTrigger : struct;
     }
 }
