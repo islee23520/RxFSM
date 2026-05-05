@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace RxFSM
 {
-    public static class Disposable
+    public static class FSMDisposable
     {
         public static IDisposable Create(Action onDispose) => new ActionDisposable(onDispose);
         public static readonly IDisposable Empty = new EmptyDisposable();
@@ -90,7 +90,7 @@ namespace RxFSM
         }
     }
 
-    public static class DisposableExtensions
+    public static class FSMDisposableExtensions
     {
         public static T AddTo<T>(this T disposable, FSMCompositeDisposable composite) where T : IDisposable
         {

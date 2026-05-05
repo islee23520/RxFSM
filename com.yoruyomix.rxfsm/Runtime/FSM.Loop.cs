@@ -41,7 +41,7 @@ namespace RxFSM
                 catch (Exception ex) { OnError?.Invoke(ex, capturedTrg, CallbackType.TickState); }
             });
 
-            var outerHandle = Disposable.Create(() =>
+            var outerHandle = FSMDisposable.Create(() =>
             {
                 if (disposed) return;
                 disposed = true;

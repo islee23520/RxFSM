@@ -42,9 +42,9 @@ namespace RxFSM
             // Switch: cancel when any state exits
             IDisposable exitHandle = policy == TransitionOperation.Switch
                 ? ExitState((cur, next) => sub.Cts?.Cancel())
-                : Disposable.Empty;
+                : FSMDisposable.Empty;
 
-            return Disposable.Create(() =>
+            return FSMDisposable.Create(() =>
             {
                 _asyncSubs?.Remove(sub);
                 CancelSubAndRelease(sub);
@@ -73,9 +73,9 @@ namespace RxFSM
 
             IDisposable exitHandle = policy == TransitionOperation.Switch
                 ? ExitState((cur, next) => sub.Cts?.Cancel())
-                : Disposable.Empty;
+                : FSMDisposable.Empty;
 
-            return Disposable.Create(() =>
+            return FSMDisposable.Create(() =>
             {
                 _asyncSubs?.Remove(sub);
                 CancelSubAndRelease(sub);
@@ -103,9 +103,9 @@ namespace RxFSM
 
             IDisposable exitHandle = policy == TransitionOperation.Switch
                 ? ExitState(targetState, (next, trg) => sub.Cts?.Cancel())
-                : Disposable.Empty;
+                : FSMDisposable.Empty;
 
-            return Disposable.Create(() =>
+            return FSMDisposable.Create(() =>
             {
                 _asyncSubs?.Remove(sub);
                 CancelSubAndRelease(sub);
@@ -135,9 +135,9 @@ namespace RxFSM
 
             IDisposable exitHandle = policy == TransitionOperation.Switch
                 ? ExitState(targetState, (next, trg) => sub.Cts?.Cancel())
-                : Disposable.Empty;
+                : FSMDisposable.Empty;
 
-            return Disposable.Create(() =>
+            return FSMDisposable.Create(() =>
             {
                 _asyncSubs?.Remove(sub);
                 CancelSubAndRelease(sub);

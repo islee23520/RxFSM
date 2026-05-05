@@ -86,7 +86,7 @@ namespace RxFSM
         internal static IDisposable Register(int stage, Action<float> callback)
         {
             _stages[stage].Add(callback);
-            return Disposable.Create(() => _stages[stage].Remove(callback));
+            return FSMDisposable.Create(() => _stages[stage].Remove(callback));
         }
 
         internal static IDisposable Register(int stage, Action callback)

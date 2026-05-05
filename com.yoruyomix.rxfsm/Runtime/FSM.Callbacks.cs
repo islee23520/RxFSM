@@ -30,13 +30,13 @@ namespace RxFSM
         public IDisposable EnterState(Action<TState, TState> callback)
         {
             (_onEnterList ??= new List<Action<TState, TState>>()).Add(callback);
-            return Disposable.Create(() => _onEnterList?.Remove(callback));
+            return FSMDisposable.Create(() => _onEnterList?.Remove(callback));
         }
 
         public IDisposable EnterState(Action<TState, TState, object> callback)
         {
             (_onEnterWithTrgList ??= new List<Action<TState, TState, object>>()).Add(callback);
-            return Disposable.Create(() => _onEnterWithTrgList?.Remove(callback));
+            return FSMDisposable.Create(() => _onEnterWithTrgList?.Remove(callback));
         }
 
         public IDisposable EnterState(TState targetState, Action<TState, object> callback)
@@ -45,7 +45,7 @@ namespace RxFSM
             if (!_onEnterState.TryGetValue(targetState, out var list))
                 _onEnterState[targetState] = list = new List<Action<TState, object>>();
             list.Add(callback);
-            return Disposable.Create(() => list.Remove(callback));
+            return FSMDisposable.Create(() => list.Remove(callback));
         }
 
         public IDisposable EnterState<TTrigger>(Action<TState, TState, object> callback)
@@ -56,7 +56,7 @@ namespace RxFSM
             if (!_onEnterByTrigger.TryGetValue(key, out var list))
                 _onEnterByTrigger[key] = list = new List<Action<TState, TState, object>>();
             list.Add(callback);
-            return Disposable.Create(() => list.Remove(callback));
+            return FSMDisposable.Create(() => list.Remove(callback));
         }
 
         internal IDisposable EnterState<TTrigger>(TState targetState, Action<TState, object> callback)
@@ -67,7 +67,7 @@ namespace RxFSM
             if (!_onEnterStateByTrigger.TryGetValue(key, out var list))
                 _onEnterStateByTrigger[key] = list = new List<Action<TState, object>>();
             list.Add(callback);
-            return Disposable.Create(() => list.Remove(callback));
+            return FSMDisposable.Create(() => list.Remove(callback));
         }
 
         public IDisposable EnterState<TTrigger>(TState targetState, Action<TState, TTrigger> callback)
@@ -79,7 +79,7 @@ namespace RxFSM
                 _onEnterStateByTrigger[key] = list = new List<Action<TState, object>>();
             Action<TState, object> wrapper = (prev, trg) => callback(prev, (TTrigger)trg);
             list.Add(wrapper);
-            return Disposable.Create(() => list.Remove(wrapper));
+            return FSMDisposable.Create(() => list.Remove(wrapper));
         }
 
         // ── ExitState overloads ──────────────────────────────────────────────────
@@ -87,13 +87,13 @@ namespace RxFSM
         public IDisposable ExitState(Action<TState, TState> callback)
         {
             (_onExitList ??= new List<Action<TState, TState>>()).Add(callback);
-            return Disposable.Create(() => _onExitList?.Remove(callback));
+            return FSMDisposable.Create(() => _onExitList?.Remove(callback));
         }
 
         public IDisposable ExitState(Action<TState, TState, object> callback)
         {
             (_onExitWithTrgList ??= new List<Action<TState, TState, object>>()).Add(callback);
-            return Disposable.Create(() => _onExitWithTrgList?.Remove(callback));
+            return FSMDisposable.Create(() => _onExitWithTrgList?.Remove(callback));
         }
 
         public IDisposable ExitState(TState targetState, Action<TState, object> callback)
@@ -102,7 +102,7 @@ namespace RxFSM
             if (!_onExitState.TryGetValue(targetState, out var list))
                 _onExitState[targetState] = list = new List<Action<TState, object>>();
             list.Add(callback);
-            return Disposable.Create(() => list.Remove(callback));
+            return FSMDisposable.Create(() => list.Remove(callback));
         }
 
         public IDisposable ExitState<TTrigger>(Action<TState, TState, object> callback)
@@ -113,7 +113,7 @@ namespace RxFSM
             if (!_onExitByTrigger.TryGetValue(key, out var list))
                 _onExitByTrigger[key] = list = new List<Action<TState, TState, object>>();
             list.Add(callback);
-            return Disposable.Create(() => list.Remove(callback));
+            return FSMDisposable.Create(() => list.Remove(callback));
         }
 
         public IDisposable ExitState<TTrigger>(TState targetState, Action<TState, TTrigger> callback)
@@ -125,7 +125,7 @@ namespace RxFSM
                 _onExitStateByTrigger[key] = list = new List<Action<TState, object>>();
             Action<TState, object> wrapper = (next, trg) => callback(next, (TTrigger)trg);
             list.Add(wrapper);
-            return Disposable.Create(() => list.Remove(wrapper));
+            return FSMDisposable.Create(() => list.Remove(wrapper));
         }
 
         // ── FireEnter ────────────────────────────────────────────────────────────

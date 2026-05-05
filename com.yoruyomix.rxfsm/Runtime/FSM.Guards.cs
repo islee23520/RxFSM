@@ -204,7 +204,7 @@ namespace RxFSM
                     elapsed += dt;
                     if (elapsed >= time)
                     {
-                        timerHandle.Disposable = Disposable.Empty;
+                        timerHandle.Disposable = FSMDisposable.Empty;
                         TransitionTo(to);
                     }
                 });
@@ -212,7 +212,7 @@ namespace RxFSM
 
             ExitState(from, (next, trg) =>
             {
-                timerHandle.Disposable = Disposable.Empty;
+                timerHandle.Disposable = FSMDisposable.Empty;
             }).AddTo(_loopDisposables);
         }
 
@@ -242,12 +242,12 @@ namespace RxFSM
 
         public IDisposable Deactivate()
         {
-            if (_disposed) return Disposable.Empty;
+            if (_disposed) return FSMDisposable.Empty;
             if (_deactivateCount == 0)
                 OnFirstDeactivate();
             _deactivateCount++;
             IncrementChildrenDeactivate(); // nested FSM propagation
-            return Disposable.Create(() =>
+            return FSMDisposable.Create(() =>
             {
                 if (_deactivateCount > 0) _deactivateCount--;
                 DecrementChildrenDeactivate();
@@ -288,7 +288,7 @@ namespace RxFSM
             // Cancel AutoTransition timers
             if (_autoTransitionTimers != null)
                 foreach (var t in _autoTransitionTimers)
-                    t.Disposable = Disposable.Empty;
+                    t.Disposable = FSMDisposable.Empty;
 
             // Discard all pending guard triggers
             _guardPending?.Clear();
@@ -303,7 +303,7 @@ namespace RxFSM
         {
             Action<TTrigger> handler = t => Evaluate(t);
             subscribe(handler);
-            return Disposable.Create(() => unsubscribe(handler));
+            return FSMDisposable.Create(() => unsubscribe(handler));
         }
 
         // ── Cleanup ─────────────────────────────────────────────────────────────
