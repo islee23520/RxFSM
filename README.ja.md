@@ -609,6 +609,8 @@ sm.EnterState((prev, cur, trg) =>
 ```
 
 > **注意:** コールバックは遷移が発生したときのみ呼ばれます。`Create<>()`で指定した初期状態はEnter・Tick・Exitいずれも発火しません — 最初の`Trigger`または`TransitionTo`以降からコールバックが動作します。
+>
+> **同じ状態への再入場が許可されています。** `TransitionTo`、`ForceTransitionTo`、または現在の状態に解決されるトリガーを発行すると、Exit・Enterコールバックがそのまま発火します。自己遷移（self-transition）に対するno-op処理はありません。
 
 ### ライフサイクル連携
 
@@ -782,8 +784,8 @@ sm.Connect(network.commandStream);   // IObservable<NetworkCommand>
 | `ThrottleFrameState(state, frames)` | ThrottleStateのフレームベース版。 |
 | `HoldState(state, waitUntil)` | 条件が満たされるまで状態の離脱を遅延。 |
 | `AutoTransition(from, to, time)` | 指定時間後またはコールバック完了時に自動遷移。 |
-| `ForceTransitionTo(state)` | すべてのガードを無視して遷移。TransitionOperation.Throttle、TransitionFilterなどをバイパス。 |
-| `TransitionTo(state)` | 指定状態へ直接遷移。 |
+| `ForceTransitionTo(state)` | すべてのガードを無視して遷移。TransitionOperation.Throttle、TransitionFilterなどをバイパス。同じ状態への再入場時もExit/Enterを発火。 |
+| `TransitionTo(state)` | 指定状態へ直接遷移。同じ状態への再入場が許可されており、Exit/Enterコールバックを発火。 |
 | `Deactivate()` | FSMを一時停止。返されたハンドルをDisposeすると再開します。 |
 | `Interrupt(IInterrupt)` | 現在の状態に基づく非同期分岐ロジックを注入。キャンセルサポートあり。 |
 | `UseGlobalFilter(ITransitionFilter)` | すべての遷移にミドルウェアを適用。 |

@@ -614,6 +614,8 @@ sm.EnterState((prev, cur, trg) =>
 ```
 
 > **Note:** Callbacks only fire on transitions. The initial state set in `Create<>()` fires no Enter, Tick, or Exit — all callbacks are silent until the first `Trigger` or `TransitionTo` occurs.
+>
+> **Same-state re-entry is allowed.** Calling `TransitionTo`, `ForceTransitionTo`, or firing a trigger that resolves to the current state will still invoke Exit and Enter callbacks. There is no no-op guard on self-transitions.
 
 ### Lifecycle integration
 
@@ -786,8 +788,8 @@ sm.Connect(network.commandStream);   // IObservable<NetworkCommand>
 | `ThrottleFrameState(state, frames)`  | Frame-based version of ThrottleState.                                                                                                                    |
 | `HoldState(state, waitUntil)`        | Defer transition out of a state until a condition is met. Pending transitions execute once the condition is satisfied.                                   |
 | `AutoTransition(from, to, time)`     | Automatically transition after a set duration or clip completion.                                                                                        |
-| `ForceTransitionTo(state)`           | Bypass all guards: TransitionOperation.Throttle, TransitionFilter, ThrottleState, ThrottleFrameState, and HoldState.                                             |
-| `TransitionTo(state)`                | Directly transition to a specified state.                                                                                                                |
+| `ForceTransitionTo(state)`           | Bypass all guards: TransitionOperation.Throttle, TransitionFilter, ThrottleState, ThrottleFrameState, and HoldState. Same-state re-entry fires Exit/Enter.       |
+| `TransitionTo(state)`                | Directly transition to a specified state. Same-state re-entry is allowed and fires Exit/Enter callbacks.                                                 |
 | `Deactivate()`                       | Pause the FSM. Resume by disposing the returned handle.                                                                                                  |
 | `Interrupt(IInterrupt)`              | Inject branching async logic based on current state, with cancellation support.                                                                          |
 | `UseGlobalFilter(ITransitionFilter)` | Apply middleware to all transitions.                                                                                                                     |

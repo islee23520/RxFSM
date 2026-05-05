@@ -613,6 +613,8 @@ sm.EnterState((prev, cur, trg) =>
 ```
 
 > **참고:** 콜백은 전이가 발생할 때만 호출됩니다. `Create<>()`에 지정한 초기 상태는 Enter · Tick · Exit 모두 발화하지 않으며, 첫 번째 `Trigger` 또는 `TransitionTo` 이후부터 콜백이 동작합니다.
+>
+> **같은 상태로의 재진입이 허용됩니다.** `TransitionTo`, `ForceTransitionTo`, 또는 현재 상태로 귀결되는 트리거를 발행하면 Exit · Enter 콜백이 그대로 발화합니다. 자기 전이(self-transition)에 대한 no-op 처리는 없습니다.
 
 ### 라이프사이클 연동
 
@@ -786,8 +788,8 @@ sm.Connect(network.commandStream);   // IObservable<NetworkCommand>
 | `ThrottleFrameState(state, frames)` | ThrottleState의 프레임 기반 버전. |
 | `HoldState(state, waitUntil)` | 조건이 충족될 때까지 상태 이탈 지연. |
 | `AutoTransition(from, to, time)` | 지정 시간 후 또는 콜백 완료 시 자동 전이. |
-| `ForceTransitionTo(state)` | 모든 가드 우회. TransitionOperation.Throttle, TransitionFilter, ThrottleState 등 무시. |
-| `TransitionTo(state)` | 지정 상태로 직접 전이. |
+| `ForceTransitionTo(state)` | 모든 가드 우회. TransitionOperation.Throttle, TransitionFilter, ThrottleState 등 무시. 같은 상태 재진입 시 Exit/Enter 발화. |
+| `TransitionTo(state)` | 지정 상태로 직접 전이. 같은 상태 재진입 허용 — Exit/Enter 콜백 발화. |
 | `Deactivate()` | FSM 일시 정지. 반환된 핸들을 Dispose하면 재개됩니다. |
 | `Interrupt(IInterrupt)` | 현재 상태 기반 비동기 분기 로직 삽입. 취소 지원. |
 | `UseGlobalFilter(ITransitionFilter)` | 모든 전이에 미들웨어 적용. |
