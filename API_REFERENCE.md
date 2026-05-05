@@ -266,6 +266,62 @@ sm.EnterStateAsync<CastSpell>(S.Casting,
 
 ---
 
+## State-Bounded Cancellation: EnterStateCts / ExitStateCts
+
+One-shot `CancellationToken` handles whose token is cancelled by an FSM state transition. Designed for code **outside** the FSM callback flow that needs its async work bounded by an FSM state event — e.g. external input handlers, manager methods, or any `async` path that doesn't have access to the `CancellationToken` provided by `EnterStateAsync`.
+
+```csharp
+public interface IStateCtsHandle : IDisposable
+{
+    CancellationToken Token { get; }
+}
+
+IStateCtsHandle h1 = sm.EnterStateCts(state); // cancels on next entry into `state`
+IStateCtsHandle h2 = sm.ExitStateCts(state);  // cancels on next exit from `state`
+```
+
+**Semantics**
+
+| API | Cancels when |
+|---|---|
+| `EnterStateCts(state)` | The next time the FSM **enters** `state` (including self-transitions). |
+| `ExitStateCts(state)` | The next time the FSM **exits** `state`. |
+
+**Lifecycle**
+
+- One-shot. After firing once, the internal subscription is unregistered and the token stays cancelled. To listen again, call the extension again to obtain a fresh handle.
+- Returned handle is `IDisposable`. **Always wrap in `using`** (or dispose explicitly) — `Dispose` cancels the token if not already cancelled, releases the subscription, and disposes the underlying `CancellationTokenSource`.
+- Both `Fire` (state-triggered) and `Dispose` (caller-triggered) are idempotent and safe in any order.
+- No external dependencies. Uses only `System.Threading.CancellationTokenSource`.
+
+**Example**
+
+```csharp
+storyButton.onClick.AddListener(async () =>
+{
+    using var h = sm.EnterStateCts(StoryState.Closed);
+    await storyPlayer.PlayAsync(h.Token); // aborted when story window closes again
+});
+```
+
+```csharp
+sm.EnterState(State.Underwater, async (prev, trg) =>
+{
+    using var h = sm.ExitStateCts(State.Underwater);
+    while (!h.Token.IsCancellationRequested)
+    {
+        oxygen -= 1f;
+        await UniTask.Delay(1000, cancellationToken: h.Token);
+    }
+});
+```
+
+**When to prefer `EnterStateAsync` instead**
+
+If the work originates from an FSM transition itself, use `EnterStateAsync` with `TransitionOperation.Switch` — it provides the same cancellation semantics with less ceremony. `EnterStateCts` / `ExitStateCts` are the right tool only when the awaiting code lives **outside** the FSM's own callback dispatch.
+
+---
+
 ## Guard Interaction Rules
 
 Guards block transitions out of a state. Multiple guards use **AND logic** — all must clear before the pending trigger fires.
@@ -597,12 +653,14 @@ battleFsm.EnterStateAsync<UltimateActivated>(BattleState.UltimateCutscene,
 | `ExitState<TTrigger>(targetState, (next, trg) => {})` | State + trigger filtered, `trg` is typed `TTrigger`. |
 | `TickState(state, (prev, trg) => {})` | Per-frame at STAGE_TICKS. First tick is next frame after entry. `prev`/`trg` frozen at entry. |
 | `EnterStateAsync(callback, policy)` | Async callback. Policies: `Throttle` / `Switch` / `Parallel` / `Drop`. |
+| `EnterStateCts(state)` | One-shot `IStateCtsHandle`. Token cancels on next entry into `state`. Use with `using`. |
+| `ExitStateCts(state)` | One-shot `IStateCtsHandle`. Token cancels on next exit from `state`. Use with `using`. |
 | `ThrottleState(state, t)` | Block exit for `t` seconds. Last pending trigger fires when timer expires. |
 | `ThrottleFrameState(state, n)` | Frame-based version of `ThrottleState`. |
 | `HoldState(state, () => bool)` | Defer exit until condition is true. |
 | `AutoTransition(from, to, time)` | Auto-transition after duration or on `Action<Action>` callback. |
-| `TransitionTo(state)` | Direct transition, no trigger, no guards bypassed. |
-| `ForceTransitionTo(state)` | Bypasses all guards. Cancels all async tasks, filters, interrupts. |
+| `TransitionTo(state)` | Direct transition, no trigger, no guards bypassed. Same-state re-entry allowed — fires Exit then Enter. |
+| `ForceTransitionTo(state)` | Bypasses all guards. Cancels all async tasks, filters, interrupts. Same-state re-entry allowed — fires Exit then Enter. |
 | `ForceTransition()` | Builder modifier. Must chain immediately after `AddTransition`. |
 | `Deactivate()` | Pause. Reference-counted. Cancels all async tasks. Returns `IDisposable`. |
 | `Interrupt(IInterrupt)` | Async branch on current state with auto CT. `InvokeAsync(Enum, ct)` — cast Enum. |
